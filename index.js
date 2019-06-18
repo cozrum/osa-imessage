@@ -40,6 +40,11 @@ function appleTimeNow() {
     return Math.floor(Date.now() / 1000) - DATE_OFFSET
 }
 
+// Gets the Apple-style timestamp
+function appleTime(timestamp) {
+    return Math.floor((timestamp || Date.now()) / 1000) - DATE_OFFSET
+}
+
 // Transforms an Apple-style timestamp to a proper unix timestamp
 function fromAppleTime(ts) {
     if (ts == 0) {
@@ -92,10 +97,11 @@ function nameForHandle(handle) {
 }
 
 // Sends a message to the given handle
-function send(handle, message) {
+async function send(handle, message) {
     assert(typeof handle == 'string', 'handle must be a string')
     assert(typeof message == 'string', 'message must be a string')
-    return osa((handle, message) => {
+
+    await osa((handle, message) => {
         const Messages = Application('Messages')
 
         let target
@@ -105,7 +111,7 @@ function send(handle, message) {
         } catch (e) {}
 
         try {
-            target = Messages.textChats.byId('iMessage;+;' + handle)()
+            target = Messages.textChats.byId('iMessage;-;+' + handle)()
         } catch (e) {}
 
         try {
@@ -114,11 +120,142 @@ function send(handle, message) {
             throw new Error(`no thread with handle '${handle}'`)
         }
     })(handle, message)
+
+    return new Promise(async res => {
+        const query = `
+            SELECT
+                id AS phoneNumber,
+                m.guid as messageId,
+                text as message,
+                is_from_me as fromMe,
+                is_sent as sent
+            FROM message AS m
+            LEFT JOIN handle AS h ON h.rowid = m.handle_id
+            WHERE phoneNumber='+${handle}' AND message='${message}' AND sent=1 AND fromMe=1
+            LIMIT ${1}
+            OFFSET ${0}
+             `
+
+        const db = await messagesDb.open()
+
+        let messages = []
+
+        while (true) {
+            messages = await db.all(query)
+            if (messages.length) {
+                break
+            }
+            await new Promise(res => setTimeout(res, 100))
+        }
+
+        res(parseMessages(messages)[0])
+    })
+}
+
+// Sends a message to the given handle
+async function sendFile(handle, filePath) {
+    assert(typeof handle == 'string', 'handle must be a string')
+    assert(typeof filePath == 'string', 'filePath must be a string')
+    await osa((handle, filePath) => {
+        console.log('TCL: handle', handle)
+        const Messages = Application('Messages')
+
+        let target
+
+        try {
+            target = Messages.buddies.whose({ handle: handle })[0]
+        } catch (e) {}
+
+        try {
+            target = Messages.textChats.byId('iMessage;-;+' + handle)()
+        } catch (e) {}
+
+        try {
+            const msg = Path(filePath)
+            console.log('TCL: msg', msg)
+            Messages.send(msg, { to: target })
+        } catch (e) {
+            throw new Error(`no thread with handle '${handle}'`)
+        }
+    })(handle, filePath)
+
+    return
+}
+
+const ImageMimeTypes = [
+    'image/bmp',
+    'image/cis-cod',
+    'image/gif',
+    'image/ief',
+    'image/png',
+    'image/jpeg',
+    'image/pipeg',
+    'image/svg+xml',
+    'image/tiff',
+    'image/tiff',
+    'image/x-cmu-raster',
+    'image/x-cmx',
+    'image/x-icon',
+    'image/x-portable-anymap',
+    'image/x-portable-bitmap',
+    'image/x-portable-graymap',
+    'image/x-portable-pixmap',
+    'image/x-rgb',
+    'image/x-xbitmap',
+    'image/x-xpixmap',
+    'image/x-xwindowdump',
+]
+
+/**
+ *
+ *
+ * @param {object[]} msgs
+ * @returns
+ */
+function parseMessages(msgs) {
+    let prevRow = null
+
+    return msgs
+        .map(msg => {
+            if (msg.filename) {
+                let bb = prevRow && msg.id === prevRow.id ? prevRow : msg
+                if (!bb.image_attachment_url) bb.image_attachment_url = []
+                const path = msg.filename.replace(
+                    '~/Library/Messages/Attachments',
+                    ''
+                )
+
+                if (ImageMimeTypes.includes(msg.mime_type)) {
+                    bb.image_attachment_url.push(path)
+                } else {
+                    if (!bb.attachment) bb.attachment = []
+                    bb.attachment.push({
+                        path,
+                        mime_type: msg.mime_type,
+                    })
+                }
+            }
+
+            if (prevRow && msg.id === prevRow.id) {
+                return null
+            }
+
+            msg.date = fromAppleTime(msg.date)
+
+            delete msg.mime_type
+            delete msg.filename
+
+            msg.fromMe = !!msg.fromMe
+
+            prevRow = msg
+            return msg
+        })
+        .filter(f => f)
 }
 
 let emitter = null
-let emittedMsgs = []
-function listen() {
+let emittedMsgs = {}
+function listen(lastTime) {
     // If listen has already been run, return the existing emitter
     if (emitter != null) {
         return emitter
@@ -127,7 +264,7 @@ function listen() {
     // Create an EventEmitter
     emitter = new (require('events')).EventEmitter()
 
-    let last = packTimeConditionally(appleTimeNow() - 5)
+    let last = packTimeConditionally(appleTime())
     let bail = false
 
     const dbPromise = messagesDb.open()
@@ -135,36 +272,35 @@ function listen() {
     async function check() {
         const db = await dbPromise
         const query = `
-            SELECT
-                guid,
-                id as handle,
-                text,
-                date,
-                date_read,
-                is_from_me,
-                cache_roomnames
-            FROM message
-            LEFT OUTER JOIN handle ON message.handle_id = handle.ROWID
+            SELECT               
+                m.rowid as id,
+                date, 
+                id AS phoneNumber,
+                m.guid as messageId,
+                text as message,
+                mime_type,
+                filename,
+                is_from_me as fromMe
+            FROM message as m
+            LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
+            LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
+            LEFT JOIN handle AS h ON h.rowid = m.handle_id
             WHERE date >= ${last}
         `
-        last = packTimeConditionally(appleTimeNow())
 
         try {
             const messages = await db.all(query)
-            messages.forEach(msg => {
-                if (emittedMsgs[msg.guid]) return
-                emittedMsgs[msg.guid] = true
-                emitter.emit('message', {
-                    guid: msg.guid,
-                    text: msg.text,
-                    handle: msg.handle,
-                    group: msg.cache_roomnames,
-                    fromMe: !!msg.is_from_me,
-                    date: fromAppleTime(msg.date),
-                    dateRead: fromAppleTime(msg.date_read),
+            if (messages.length) {
+                last = packTimeConditionally(appleTimeNow())
+
+                parseMessages(messages).forEach(msg => {
+                    if (emittedMsgs[msg.messageId]) return
+                    emittedMsgs[msg.messageId] = { time: last }
+                    emitter.emit('message', msg)
                 })
-            })
-            setTimeout(check, 1000)
+            }
+
+            setTimeout(check, 500)
         } catch (err) {
             bail = true
             emitter.emit('error', err)
@@ -176,6 +312,18 @@ function listen() {
 
     if (bail) return
     check()
+
+    function emptyEmittedMsgs() {
+        Object.keys(emittedMsgs).keys(messageId => {
+            if (emittedMsgs[messageId].time < last) {
+                delete emittedMsgs[messageId]
+            }
+        })
+
+        emitter.emit('changeLast', last)
+    }
+
+    setInterval(emptyEmittedMsgs, 10000)
 
     return emitter
 }
@@ -201,9 +349,59 @@ async function getRecentChats(limit = 10) {
     return chats
 }
 
+async function getMessages(phone, start, limit) {
+    assert(typeof phone == 'string', 'handle must be a string')
+    assert(typeof start == 'number', 'handle must be a number')
+    assert(typeof limit == 'number', 'message must be a number')
+
+    const db = await messagesDb.open()
+
+    const query = `
+    SELECT
+        m.rowid as id,
+        date, 
+        id AS phoneNumber,
+        m.guid as messageId,
+        text as message,
+        mime_type,
+        filename,
+        is_from_me as fromMe
+    FROM message AS m
+    LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
+    LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
+    LEFT JOIN handle AS h ON h.rowid = m.handle_id
+    WHERE phoneNumber='+${phone}'
+    LIMIT ${-limit}
+    OFFSET ${-start}
+     `
+
+    const messages = await db.all(query)
+
+    return parseMessages(messages)
+}
+
+async function checkExists(phone) {
+    const db = await messagesDb.open()
+
+    const query = `
+    SELECT * 
+    FROM  "chat" 
+    WHERE "guid" = 'iMessage;-;+${phone}' 
+    ORDER BY 1 
+    LIMIT 300 
+    OFFSET 0;
+    `
+
+    const exists = await db.all(query)
+    return exists
+}
+
 module.exports = {
     send,
     listen,
+    checkExists,
+    sendFile,
+    getMessages,
     handleForName,
     nameForHandle,
     getRecentChats,

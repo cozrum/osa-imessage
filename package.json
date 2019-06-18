@@ -1,48 +1,75 @@
 {
-    "name": "osa-imessage",
-    "version": "2.4.0",
-    "description": "Bring the power of NodeJS to Apple iMessage",
-    "author": {
-        "name": "Will Franzen",
-        "email": "wtfranzen@gmail.com",
-        "url": "http://will.wtf"
-    },
-    "scripts": {
-        "fmt": "prettier --write '*.js'"
-    },
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/wtfaremyinitials/osa-imessage.git"
-    },
-    "main": "index.js",
-    "keywords": [
-        "messages",
-        "osx",
-        "yosemite",
-        "jxa",
-        "osa",
-        "imessage",
-        "sms",
-        "send",
-        "receive"
-    ],
-    "engines": {
-        "node": ">=8"
-    },
-    "dependencies": {
-        "macos-version": "^4.0.0",
-        "one-liner": "^1.0.3",
-        "osa2": "^0.0.0",
-        "sqlite": "^2.8.0"
-    },
-    "devDependencies": {
-        "prettier": "^1.3.0"
-    },
-    "prettier": {
-        "semi": false,
-        "singleQuote": true,
-        "tabWidth": 4,
-        "trailingComma": "es5"
-    }
+  "_from": "git+https://github.com/ximxim8963/osa-imessage.git",
+  "_id": "osa-imessage@2.4.0",
+  "_inBundle": false,
+  "_integrity": "",
+  "_location": "/osa-imessage",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "git",
+    "raw": "git+https://github.com/ximxim8963/osa-imessage",
+    "rawSpec": "git+https://github.com/ximxim8963/osa-imessage",
+    "saveSpec": "git+https://github.com/ximxim8963/osa-imessage.git",
+    "fetchSpec": "https://github.com/ximxim8963/osa-imessage.git",
+    "gitCommittish": null
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "git+https://github.com/ximxim8963/osa-imessage.git#6532d837524d86d6cabdb7d1ce75fc1fab462044",
+  "_spec": "git+https://github.com/ximxim8963/osa-imessage",
+  "_where": "/Volumes/Data/Work/Projects/iMesageChatService",
+  "author": {
+    "name": "Will Franzen",
+    "email": "wtfranzen@gmail.com",
+    "url": "http://will.wtf"
+  },
+  "bugs": {
+    "url": "https://github.com/wtfaremyinitials/osa-imessage/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "macos-version": "^4.0.0",
+    "one-liner": "^1.0.3",
+    "osa2": "^0.0.0",
+    "sqlite": "^2.8.0"
+  },
+  "deprecated": false,
+  "description": "Bring the power of NodeJS to Apple iMessage",
+  "devDependencies": {
+    "prettier": "^1.3.0"
+  },
+  "engines": {
+    "node": ">=8"
+  },
+  "homepage": "https://github.com/wtfaremyinitials/osa-imessage#readme",
+  "keywords": [
+    "messages",
+    "osx",
+    "yosemite",
+    "jxa",
+    "osa",
+    "imessage",
+    "sms",
+    "send",
+    "receive"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "osa-imessage",
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 4,
+    "trailingComma": "es5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wtfaremyinitials/osa-imessage.git"
+  },
+  "scripts": {
+    "fmt": "prettier --write '*.js'"
+  },
+  "version": "2.4.0"
 }
