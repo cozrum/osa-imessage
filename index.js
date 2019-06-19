@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 const osa = require('osa2')
 const ol = require('one-liner')
 const assert = require('assert')
@@ -132,7 +133,7 @@ async function send(handle, message) {
             FROM message AS m
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
             WHERE phoneNumber='+${handle}' AND message='${message}' AND sent=1 AND fromMe=1
-            LIMIT ${1}
+            LIMIT ${-1}
             OFFSET ${0}
              `
 
@@ -157,7 +158,6 @@ async function sendFile(handle, filePath) {
     assert(typeof handle == 'string', 'handle must be a string')
     assert(typeof filePath == 'string', 'filePath must be a string')
     await osa((handle, filePath) => {
-        console.log('TCL: handle', handle)
         const Messages = Application('Messages')
 
         let target
@@ -172,14 +172,47 @@ async function sendFile(handle, filePath) {
 
         try {
             const msg = Path(filePath)
-            console.log('TCL: msg', msg)
             Messages.send(msg, { to: target })
         } catch (e) {
             throw new Error(`no thread with handle '${handle}'`)
         }
     })(handle, filePath)
 
-    return
+    const fileName = path.basename(filePath)
+
+    return new Promise(async res => {
+        const query = `
+            SELECT
+                id AS phoneNumber,
+                m.guid as messageId,
+                text as message,
+                is_from_me as fromMe,
+                is_sent as sent,
+                transfer_name,
+                cache_has_attachments
+            FROM message AS m
+            LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
+            LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
+            LEFT JOIN handle AS h ON h.rowid = m.handle_id
+            WHERE phoneNumber='+${handle}' AND transfer_name='${fileName}' AND cache_has_attachments=1 AND sent=1 AND fromMe=1
+            LIMIT ${1}
+            OFFSET ${0}
+             `
+
+        const db = await messagesDb.open()
+
+        let messages = []
+
+        while (true) {
+            messages = await db.all(query)
+            if (messages.length) {
+                break
+            }
+            await new Promise(res => setTimeout(res, 100))
+        }
+
+        res(parseMessages(messages)[0])
+    })
 }
 
 const ImageMimeTypes = [
@@ -240,10 +273,11 @@ function parseMessages(msgs) {
                 return null
             }
 
-            msg.date = fromAppleTime(msg.date)
+            msg.time = fromAppleTime(msg.time)
 
             delete msg.mime_type
             delete msg.filename
+            msg.message = msg.message ? msg.message.replace(/\uFFFC/g, '') : ''
 
             msg.fromMe = !!msg.fromMe
 
@@ -274,7 +308,7 @@ function listen(lastTime) {
         const query = `
             SELECT               
                 m.rowid as id,
-                date, 
+                date as time, 
                 id AS phoneNumber,
                 m.guid as messageId,
                 text as message,
@@ -285,7 +319,7 @@ function listen(lastTime) {
             LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
             LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
-            WHERE date >= ${last}
+            WHERE time >= ${last}
         `
 
         try {
@@ -359,7 +393,7 @@ async function getMessages(phone, start, limit) {
     const query = `
     SELECT
         m.rowid as id,
-        date, 
+        date as time, 
         id AS phoneNumber,
         m.guid as messageId,
         text as message,
