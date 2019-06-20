@@ -325,7 +325,9 @@ function listen(lastTime) {
         try {
             const messages = await db.all(query)
             if (messages.length) {
-                last = packTimeConditionally(appleTimeNow())
+                last =
+                    messages[messages.length - 1].time ||
+                    packTimeConditionally(appleTimeNow())
 
                 parseMessages(messages).forEach(msg => {
                     if (emittedMsgs[msg.messageId]) return
