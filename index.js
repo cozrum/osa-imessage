@@ -133,7 +133,9 @@ async function send(handle, message) {
             FROM message AS m
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
             WHERE phoneNumber='+${handle}' AND message='${message}' AND sent=1 AND fromMe=1
-            LIMIT ${-1}
+            ORDER BY m.ROWID
+            DESC
+            LIMIT ${1}
             OFFSET ${0}
              `
 
@@ -195,6 +197,8 @@ async function sendFile(handle, filePath) {
             LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
             WHERE phoneNumber='+${handle}' AND transfer_name='${fileName}' AND cache_has_attachments=1 AND sent=1 AND fromMe=1
+            ORDER BY m.ROWID
+            DESC
             LIMIT ${1}
             OFFSET ${0}
              `
@@ -407,13 +411,15 @@ async function getMessages(phone, start, limit) {
     LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
     LEFT JOIN handle AS h ON h.rowid = m.handle_id
     WHERE phoneNumber='+${phone}'
-    LIMIT ${-limit}
-    OFFSET ${-start}
-     `
+    ORDER BY m.ROWID
+    DESC 
+    LIMIT ${limit}
+    OFFSET ${start}
+`
 
     const messages = await db.all(query)
 
-    return parseMessages(messages)
+    return parseMessages(messages.reverse())
 }
 
 async function checkExists(phone) {
@@ -432,6 +438,37 @@ async function checkExists(phone) {
     return exists
 }
 
+async function getMessageId(phone, text, sent = 1, fromMe = 1) {
+    return new Promise(async res => {
+        const query = `
+            SELECT
+                id AS phoneNumber,
+                m.guid as messageId,
+                text as message,
+                is_from_me as fromMe,
+                is_sent as sent
+            FROM message AS m
+            LEFT JOIN handle AS h ON h.rowid = m.handle_id
+            WHERE phoneNumber='+${phone}' AND message='${text}' AND sent=${sent} AND fromMe=${fromMe}
+            ORDER BY m.ROWID
+            DESC
+            `
+
+        const db = await messagesDb.open()
+
+        let messages = []
+
+        while (true) {
+            messages = await db.all(query)
+            if (messages.length) break
+
+            await new Promise(res => setTimeout(res, 100))
+        }
+
+        res(parseMessages(messages)[0])
+    })
+}
+
 module.exports = {
     send,
     listen,
@@ -441,5 +478,6 @@ module.exports = {
     handleForName,
     nameForHandle,
     getRecentChats,
+    getMessageId,
     SUPPRESS_WARNINGS: false,
 }
