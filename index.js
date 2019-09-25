@@ -302,7 +302,7 @@ function listen(lastTime) {
     // Create an EventEmitter
     emitter = new (require('events')).EventEmitter()
 
-    let last = packTimeConditionally(appleTime())
+    let last = lastTime || packTimeConditionally(appleTime())
     let bail = false
 
     const dbPromise = messagesDb.open()
