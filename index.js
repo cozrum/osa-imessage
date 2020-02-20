@@ -324,10 +324,12 @@ function listen(lastTime) {
             LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
             WHERE time >= ${last}
-        `
+            `
+            console.log("TCL: check -> last", last)
 
         try {
             const messages = await db.all(query)
+            console.log("TCL: check -> messages", messages)
             if (messages.length) {
                 last =
                     messages[messages.length - 1].time ||
