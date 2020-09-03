@@ -42,7 +42,7 @@
   "engines": {
     "node": ">=8"
   },
-  "homepage": "https://github.com/wtfaremyinitials/osa-imessage#readme",
+  "homepage": "https://github.com/cozrum/osa-imessage#readme",
   "keywords": [
     "messages",
     "osx",
@@ -65,7 +65,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wtfaremyinitials/osa-imessage.git"
+    "url": "git+https://github.com/cozrum/osa-imessage.git"
   },
   "scripts": {
     "fmt": "prettier --write '*.js'"
