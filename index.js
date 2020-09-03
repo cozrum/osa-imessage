@@ -132,7 +132,7 @@ async function send(handle, message) {
                 is_sent as sent
             FROM message AS m
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
-            WHERE phoneNumber='+${handle}' AND message='${message}' AND sent=1 AND fromMe=1
+            WHERE phoneNumber='+${handle}' OR phoneNumber='${handle}' AND message='${message}' AND sent=1 AND fromMe=1
             ORDER BY m.ROWID
             DESC
             LIMIT ${1}
@@ -196,7 +196,7 @@ async function sendFile(handle, filePath) {
             LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
             LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
-            WHERE phoneNumber='+${handle}' AND transfer_name='${fileName}' AND cache_has_attachments=1 AND sent=1 AND fromMe=1
+            WHERE phoneNumber='+${handle}' OR phoneNumber='${handle}' AND transfer_name='${fileName}' AND cache_has_attachments=1 AND sent=1 AND fromMe=1
             ORDER BY m.ROWID
             DESC
             LIMIT ${1}
@@ -412,7 +412,7 @@ async function getMessages(phone, start, limit) {
     LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
     LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
     LEFT JOIN handle AS h ON h.rowid = m.handle_id
-    WHERE phoneNumber='+${phone}'
+    WHERE phoneNumber='+${phone}' OR phoneNumber='${phone}'
     ORDER BY m.ROWID
     DESC 
     LIMIT ${limit}
@@ -430,7 +430,7 @@ async function checkExists(phone) {
     const query = `
     SELECT * 
     FROM  "chat" 
-    WHERE "guid" = 'iMessage;-;+${phone}' 
+    WHERE "guid" = 'iMessage;-;+${phone}' OR "guid" = 'iMessage;-;${phone}'
     ORDER BY 1 
     LIMIT 300 
     OFFSET 0;
@@ -451,7 +451,7 @@ async function getMessageId(phone, text, sent = 1, fromMe = 1) {
                 is_sent as sent
             FROM message AS m
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
-            WHERE phoneNumber='+${phone}' AND message='${text}' AND sent=${sent} AND fromMe=${fromMe}
+            WHERE phoneNumber='+${phone}' OR phoneNumber='${phone}'  AND message='${text}' AND sent=${sent} AND fromMe=${fromMe}
             ORDER BY m.ROWID
             DESC
             `
