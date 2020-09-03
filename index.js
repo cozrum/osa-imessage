@@ -325,11 +325,11 @@ function listen(lastTime) {
             LEFT JOIN handle AS h ON h.rowid = m.handle_id
             WHERE time >= ${last}
             `
-            console.log("TCL: check -> last", last)
+            // console.log("TCL: check -> last", last)
 
         try {
             const messages = await db.all(query)
-            console.log("TCL: check -> messages", messages)
+            // console.log("TCL: check -> messages", messages)
             if (messages.length) {
                 last =
                     messages[messages.length - 1].time ||
@@ -342,7 +342,7 @@ function listen(lastTime) {
                 })
             }
 
-            setTimeout(check, 500)
+            setTimeout(check, 1000)
         } catch (err) {
             bail = true
             emitter.emit('error', err)
@@ -396,30 +396,32 @@ async function getMessages(phone, start, limit) {
     assert(typeof start == 'number', 'handle must be a number')
     assert(typeof limit == 'number', 'message must be a number')
 
+    console.time("get message")
     const db = await messagesDb.open()
 
     const query = `
-    SELECT
-        m.rowid as id,
-        date as time, 
-        id AS phoneNumber,
-        m.guid as messageId,
-        text as message,
-        mime_type,
-        filename,
-        is_from_me as fromMe
-    FROM message AS m
-    LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
-    LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
-    LEFT JOIN handle AS h ON h.rowid = m.handle_id
-    WHERE phoneNumber='+${phone}' OR phoneNumber='${phone}'
-    ORDER BY m.ROWID
-    DESC 
-    LIMIT ${limit}
-    OFFSET ${start}
-`
+        SELECT
+            m.rowid as id,
+            date as time, 
+            id AS phoneNumber,
+            m.guid as messageId,
+            text as message,
+            mime_type,
+            filename,
+            is_from_me as fromMe
+        FROM message AS m
+        LEFT JOIN message_attachment_join AS maj ON message_id = m.rowid
+        LEFT JOIN attachment AS a ON a.rowid = maj.attachment_id
+        LEFT JOIN handle AS h ON h.rowid = m.handle_id
+        WHERE phoneNumber='+${phone}' OR phoneNumber='${phone}'
+        ORDER BY m.ROWID
+        DESC 
+        LIMIT ${limit}
+        OFFSET ${start}
+    `
 
     const messages = await db.all(query)
+    console.timeEnd("get message")
 
     return parseMessages(messages.reverse())
 }
