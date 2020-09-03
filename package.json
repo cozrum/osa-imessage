@@ -1,5 +1,5 @@
 {
-  "_from": "git+https://github.com/ximxim8963/osa-imessage.git",
+  "_from": "git+https://github.com/cozrum/osa-imessage.git",
   "_id": "osa-imessage@2.4.0",
   "_inBundle": false,
   "_integrity": "",
@@ -7,18 +7,18 @@
   "_phantomChildren": {},
   "_requested": {
     "type": "git",
-    "raw": "git+https://github.com/ximxim8963/osa-imessage",
-    "rawSpec": "git+https://github.com/ximxim8963/osa-imessage",
-    "saveSpec": "git+https://github.com/ximxim8963/osa-imessage.git",
-    "fetchSpec": "https://github.com/ximxim8963/osa-imessage.git",
+    "raw": "git+https://github.com/cozrum/osa-imessage",
+    "rawSpec": "git+https://github.com/cozrum/osa-imessage",
+    "saveSpec": "git+https://github.com/cozrum/osa-imessage.git",
+    "fetchSpec": "https://github.com/cozrum/osa-imessage.git",
     "gitCommittish": null
   },
   "_requiredBy": [
     "#USER",
     "/"
   ],
-  "_resolved": "git+https://github.com/ximxim8963/osa-imessage.git#6532d837524d86d6cabdb7d1ce75fc1fab462044",
-  "_spec": "git+https://github.com/ximxim8963/osa-imessage",
+  "_resolved": "git+https://github.com/cozrum/osa-imessage.git#6532d837524d86d6cabdb7d1ce75fc1fab462044",
+  "_spec": "git+https://github.com/cozrum/osa-imessage",
   "_where": "/Volumes/Data/Work/Projects/iMesageChatService",
   "author": {
     "name": "Will Franzen",
